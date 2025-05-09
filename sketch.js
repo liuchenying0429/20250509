@@ -6,6 +6,9 @@ let handPose;
 let hands = [];
 let circleX, circleY; // 圓的初始位置
 let circleRadius = 50; // 圓的半徑
+let isTrackingIndex = false; // 是否追蹤食指
+let isTrackingThumb = false; // 是否追蹤大拇指
+let trails = []; // 用於存儲圓心的軌跡
 
 function preload() {
   // Initialize HandPose model with flipped video input
@@ -36,6 +39,13 @@ function setup() {
 function draw() {
   image(video, 0, 0);
 
+  // 繪製保留的軌跡
+  for (let trail of trails) {
+    stroke(trail.color);
+    strokeWeight(2);
+    line(trail.x1, trail.y1, trail.x2, trail.y2);
+  }
+
   // 繪製圓
   fill(0, 0, 255, 150); // 半透明藍色
   noStroke();
@@ -43,6 +53,9 @@ function draw() {
 
   // 確保至少檢測到一隻手
   if (hands.length > 0) {
+    isTrackingIndex = false; // 重置追蹤狀態
+    isTrackingThumb = false;
+
     for (let hand of hands) {
       if (hand.confidence > 0.1) {
         // 繪製手部關鍵點
@@ -69,14 +82,44 @@ function draw() {
 
         // 檢測食指（keypoint 8）是否碰觸圓
         let indexFinger = hand.keypoints[8];
-        let d = dist(indexFinger.x, indexFinger.y, circleX, circleY);
-        if (d < circleRadius) {
-          // 如果碰觸，讓圓跟隨食指移動
+        let dIndex = dist(indexFinger.x, indexFinger.y, circleX, circleY);
+        if (dIndex < circleRadius) {
+          // 如果碰觸，讓圓跟隨食指移動，並畫紅色軌跡
+          trails.push({
+            x1: circleX,
+            y1: circleY,
+            x2: indexFinger.x,
+            y2: indexFinger.y,
+            color: [255, 0, 0], // 紅色
+          });
           circleX = indexFinger.x;
           circleY = indexFinger.y;
+          isTrackingIndex = true;
+        }
+
+        // 檢測大拇指（keypoint 4）是否碰觸圓
+        let thumb = hand.keypoints[4];
+        let dThumb = dist(thumb.x, thumb.y, circleX, circleY);
+        if (dThumb < circleRadius) {
+          // 如果碰觸，讓圓跟隨大拇指移動，並畫綠色軌跡
+          trails.push({
+            x1: circleX,
+            y1: circleY,
+            x2: thumb.x,
+            y2: thumb.y,
+            color: [0, 255, 0], // 綠色
+          });
+          circleX = thumb.x;
+          circleY = thumb.y;
+          isTrackingThumb = true;
         }
       }
     }
+  }
+
+  // 如果手指未接觸圓，停止畫軌跡
+  if (!isTrackingIndex && !isTrackingThumb) {
+    noStroke();
   }
 }
 
