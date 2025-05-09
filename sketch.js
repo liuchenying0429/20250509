@@ -6,9 +6,9 @@ let handPose;
 let hands = [];
 let circleX, circleY; // 圓的初始位置
 let circleRadius = 50; // 圓的半徑
-let isTrackingIndex = false; // 是否追蹤食指
-let isTrackingThumb = false; // 是否追蹤大拇指
-let trails = []; // 用於存儲圓心的軌跡
+let isDragging = false; // 是否正在拖曳
+let currentColor = [0, 0, 255, 150]; // 圓的顏色，預設為藍色
+let trails = []; // 軌跡的陣列
 
 function preload() {
   // Initialize HandPose model with flipped video input
@@ -39,7 +39,7 @@ function setup() {
 function draw() {
   image(video, 0, 0);
 
-  // 繪製保留的軌跡
+  // 繪製所有的軌跡
   for (let trail of trails) {
     stroke(trail.color);
     strokeWeight(2);
@@ -47,14 +47,14 @@ function draw() {
   }
 
   // 繪製圓
-  fill(0, 0, 255, 150); // 半透明藍色
+  fill(...currentColor); // 根據當前顏色繪製圓
   noStroke();
   ellipse(circleX, circleY, circleRadius * 2, circleRadius * 2);
 
   // 確保至少檢測到一隻手
   if (hands.length > 0) {
-    isTrackingIndex = false; // 重置追蹤狀態
-    isTrackingThumb = false;
+    let previousX = circleX;
+    let previousY = circleY;
 
     for (let hand of hands) {
       if (hand.confidence > 0.1) {
@@ -83,43 +83,46 @@ function draw() {
         // 檢測食指（keypoint 8）是否碰觸圓
         let indexFinger = hand.keypoints[8];
         let dIndex = dist(indexFinger.x, indexFinger.y, circleX, circleY);
-        if (dIndex < circleRadius) {
-          // 如果碰觸，讓圓跟隨食指移動，並畫紅色軌跡
-          trails.push({
-            x1: circleX,
-            y1: circleY,
-            x2: indexFinger.x,
-            y2: indexFinger.y,
-            color: [255, 0, 0], // 紅色
-          });
-          circleX = indexFinger.x;
-          circleY = indexFinger.y;
-          isTrackingIndex = true;
-        }
 
         // 檢測大拇指（keypoint 4）是否碰觸圓
         let thumb = hand.keypoints[4];
         let dThumb = dist(thumb.x, thumb.y, circleX, circleY);
-        if (dThumb < circleRadius) {
-          // 如果碰觸，讓圓跟隨大拇指移動，並畫綠色軌跡
+
+        if (dIndex < circleRadius) {
+          // 如果食指碰觸，讓圓跟隨食指移動，並畫紅色軌跡
+          circleX = indexFinger.x;
+          circleY = indexFinger.y;
+          currentColor = [255, 0, 0, 150]; // 改變圓的顏色為紅色
+          isDragging = true;
+
+          // 紀錄紅色軌跡
           trails.push({
-            x1: circleX,
-            y1: circleY,
-            x2: thumb.x,
-            y2: thumb.y,
-            color: [0, 255, 0], // 綠色
+            x1: previousX,
+            y1: previousY,
+            x2: circleX,
+            y2: circleY,
+            color: [255, 0, 0],
           });
+        } else if (dThumb < circleRadius) {
+          // 如果大拇指碰觸，讓圓跟隨大拇指移動，並畫綠色軌跡
           circleX = thumb.x;
           circleY = thumb.y;
-          isTrackingThumb = true;
+          currentColor = [0, 255, 0, 150]; // 改變圓的顏色為綠色
+          isDragging = true;
+
+          // 紀錄綠色軌跡
+          trails.push({
+            x1: previousX,
+            y1: previousY,
+            x2: circleX,
+            y2: circleY,
+            color: [0, 255, 0],
+          });
+        } else {
+          isDragging = false; // 如果手指離開圓，停止畫軌跡
         }
       }
     }
-  }
-
-  // 如果手指未接觸圓，停止畫軌跡
-  if (!isTrackingIndex && !isTrackingThumb) {
-    noStroke();
   }
 }
 
