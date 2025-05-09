@@ -45,7 +45,7 @@ function draw() {
   if (hands.length > 0) {
     for (let hand of hands) {
       if (hand.confidence > 0.1) {
-        // Loop through keypoints and draw circles
+        // 繪製手部關鍵點
         for (let i = 0; i < hand.keypoints.length; i++) {
           let keypoint = hand.keypoints[i];
 
@@ -67,13 +67,16 @@ function draw() {
         drawLines(hand.keypoints, 13, 16);
         drawLines(hand.keypoints, 17, 20);
 
-        // 檢測食指（keypoint 8）是否碰觸圓
+        // 檢測食指（keypoint 8）與大拇指（keypoint 4）是否同時碰觸圓的邊緣
         let indexFinger = hand.keypoints[8];
-        let d = dist(indexFinger.x, indexFinger.y, circleX, circleY);
-        if (d < circleRadius) {
-          // 如果碰觸，讓圓跟隨食指移動
-          circleX = indexFinger.x;
-          circleY = indexFinger.y;
+        let thumb = hand.keypoints[4];
+        let dIndex = dist(indexFinger.x, indexFinger.y, circleX, circleY);
+        let dThumb = dist(thumb.x, thumb.y, circleX, circleY);
+
+        if (dIndex < circleRadius && dThumb < circleRadius) {
+          // 如果兩者同時碰觸，讓圓跟隨手指移動
+          circleX = (indexFinger.x + thumb.x) / 2; // 圓心移動到兩點的中間
+          circleY = (indexFinger.y + thumb.y) / 2;
         }
       }
     }
