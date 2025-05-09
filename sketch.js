@@ -129,7 +129,7 @@ function draw() {
 // Helper function to draw lines between keypoints
 function drawLines(keypoints, startIdx, endIdx) {
   stroke(0, 255, 0); // 設置線條顏色
-  strokeWeight(2);   // 設置線條粗細
+  strokeWeight(10);   // 設置線條粗細
   for (let i = startIdx; i < endIdx; i++) {
     let kp1 = keypoints[i];
     let kp2 = keypoints[i + 1];
