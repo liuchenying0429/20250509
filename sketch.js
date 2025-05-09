@@ -4,6 +4,8 @@
 let video;
 let handPose;
 let hands = [];
+let circleX, circleY; // 圓的初始位置
+let circleRadius = 50; // 圓的半徑
 
 function preload() {
   // Initialize HandPose model with flipped video input
@@ -19,9 +21,13 @@ function gotHands(results) {
 }
 
 function setup() {
-  createCanvas(640, 480); //產生一個畫布，640*480
+  createCanvas(640, 480); // 產生一個畫布，640*480
   video = createCapture(VIDEO, { flipped: true });
   video.hide();
+
+  // 圓的初始位置設置在畫布中央
+  circleX = width / 2;
+  circleY = height / 2;
 
   // Start detecting hands
   handPose.detectStart(video, gotHands);
@@ -30,7 +36,12 @@ function setup() {
 function draw() {
   image(video, 0, 0);
 
-  // Ensure at least one hand is detected
+  // 繪製圓
+  fill(0, 0, 255, 150); // 半透明藍色
+  noStroke();
+  ellipse(circleX, circleY, circleRadius * 2, circleRadius * 2);
+
+  // 確保至少檢測到一隻手
   if (hands.length > 0) {
     for (let hand of hands) {
       if (hand.confidence > 0.1) {
@@ -38,7 +49,7 @@ function draw() {
         for (let i = 0; i < hand.keypoints.length; i++) {
           let keypoint = hand.keypoints[i];
 
-          // Color-code based on left or right hand
+          // 根據左右手設置顏色
           if (hand.handedness == "Left") {
             fill(255, 0, 255);
           } else {
@@ -49,12 +60,21 @@ function draw() {
           circle(keypoint.x, keypoint.y, 16);
         }
 
-        // Draw lines connecting keypoints in groups
-        drawLines(hand.keypoints, 0, 4);  // Connect keypoints 0 to 4
-        drawLines(hand.keypoints, 5, 8);  // Connect keypoints 5 to 8
-        drawLines(hand.keypoints, 9, 12); // Connect keypoints 9 to 12
-        drawLines(hand.keypoints, 13, 16); // Connect keypoints 13 to 16
-        drawLines(hand.keypoints, 17, 20); // Connect keypoints 17 to 20
+        // 繪製關鍵點之間的連線
+        drawLines(hand.keypoints, 0, 4);
+        drawLines(hand.keypoints, 5, 8);
+        drawLines(hand.keypoints, 9, 12);
+        drawLines(hand.keypoints, 13, 16);
+        drawLines(hand.keypoints, 17, 20);
+
+        // 檢測食指（keypoint 8）是否碰觸圓
+        let indexFinger = hand.keypoints[8];
+        let d = dist(indexFinger.x, indexFinger.y, circleX, circleY);
+        if (d < circleRadius) {
+          // 如果碰觸，讓圓跟隨食指移動
+          circleX = indexFinger.x;
+          circleY = indexFinger.y;
+        }
       }
     }
   }
@@ -62,8 +82,8 @@ function draw() {
 
 // Helper function to draw lines between keypoints
 function drawLines(keypoints, startIdx, endIdx) {
-  stroke(0, 255, 0); // Set line color
-  strokeWeight(2);   // Set line thickness
+  stroke(0, 255, 0); // 設置線條顏色
+  strokeWeight(2);   // 設置線條粗細
   for (let i = startIdx; i < endIdx; i++) {
     let kp1 = keypoints[i];
     let kp2 = keypoints[i + 1];
